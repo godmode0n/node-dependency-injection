@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Node-dependency-injection by sakren</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Node-dependency-injection</h1>
+        <h2>Dependency injection with configuration and autowire for node js and browser.</h2>
+        <a href="https://github.com/sakren/node-dependency-injection" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a name="dependency-injection" class="anchor" href="#dependency-injection"><span class="octicon octicon-link"></span></a>Dependency injection</h1>
+
+<p>Dependency injection with configuration and autowire for node js and browser (for example in combination with <a href="https://npmjs.org/package/simq">simq</a>).</p>
+
+<p>Imagine, that you have got some classes which are used very often. You have got two options: add instance of these classes
+to window object or to any other object, or create new instance every time when you want to use them.</p>
+
+<p>The problem is that first solution add some "mess" to the window object and the other one is even more problematic. What
+if you will want to change for example constructor of this class (it's arguments) or call some methods right after class
+is instanced? Than you will have to change these setups at every place.</p>
+
+<p>But with this package, you can configure your classes at one place and then let's just "ask" for them. (not service locator).</p>
+
+<p>This package is inspired by dependency injection in <a href="http://doc.nette.org/en/dependency-injection">Nette framework</a>.</p>
+
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<pre><code>$ npm install dependency-injection
+</code></pre>
+
+<h2>
+<a name="configuration" class="anchor" href="#configuration"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>Please first read full documentation of <a href="https://github.com/sakren/node-easy-configuration">easy-configuration</a>. It will
+really help you.</p>
+
+<pre><code>{
+    "services": {
+        "application": {
+            "service": "path/to/my/application/module",
+            "arguments": ["./www", "someOtherVariable"],
+            "setup": {
+                "setApplicationName": ["nameOfApplication"],
+                "setSomethingOther": ["someUselessVariable", "andAnotherOne"]
+            }
+        }
+    }
+}
+</code></pre>
+
+<p>There we set some application service with some arguments which will be given to constructor and some setup. Every time
+you will need this service, it will have got these arguments and all setup function will be called.</p>
+
+<p>Section service is path for module require (common js).</p>
+
+<p>DI automatically look into values from setup in your module (service). If it is function, then it will be called, otherwise
+argument will be passed into this object property.</p>
+
+<h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<pre><code>var DIConfigurator = require('dependency-injection/DIConfigurator');
+var configurator = new DIConfigurator('./path/to/your/configuration/file.json');
+
+var di = configurator.create();
+</code></pre>
+
+<p><strong>Relative paths to config files are supported only on node (not in browser)!!!</strong></p>
+
+<p>This will create new instance of DI class which holding all your services.</p>
+
+<p>You have to also set the basePath property. DI will prepend this basePath to all services' paths from your configuration.
+So it should be path to root directory of your application.</p>
+
+<p>In example below, you can see how to get your services.</p>
+
+<pre><code>di.get('application');
+di.create('application');
+di.getFactory('application');
+</code></pre>
+
+<h2>
+<a name="base-path-to-services" class="anchor" href="#base-path-to-services"><span class="octicon octicon-link"></span></a>Base path to services</h2>
+
+<p>Default base path in node is directory of file from which you are initializing DI. You have to set this manually in browser.</p>
+
+<pre><code>di.basePath = __dirname;
+</code></pre>
+
+<h2>
+<a name="auto-exposing-into-global" class="anchor" href="#auto-exposing-into-global"><span class="octicon octicon-link"></span></a>Auto exposing into global</h2>
+
+<p>DI can be automatically exposed into window object (when on browser) or into global object (in node). Default name for
+this object is <code>di</code>.</p>
+
+<pre><code>{
+    "setup": {
+        "expose": true
+    }
+}
+</code></pre>
+
+<p>Custom name:</p>
+
+<pre><code>{
+    "setup": {
+        "expose": "secondDI"
+    }
+}
+</code></pre>
+
+<h3>
+<a name="get" class="anchor" href="#get"><span class="octicon octicon-link"></span></a>get</h3>
+
+<p>Some services may be "singleton" type (not really singleton but with one instance in whole application), which application
+service is clearly is.</p>
+
+<p>This method will create one instance of service and store it. Every other time, this instance will be returned.</p>
+
+<h3>
+<a name="getbypath" class="anchor" href="#getbypath"><span class="octicon octicon-link"></span></a>getByPath</h3>
+
+<p>Same as <code>get</code> method, but this accepts path to node module (like in your service configuration)</p>
+
+<h3>
+<a name="create" class="anchor" href="#create"><span class="octicon octicon-link"></span></a>create</h3>
+
+<p>Method create will just create new instance of service and will not store it.</p>
+
+<h3>
+<a name="getfactory" class="anchor" href="#getfactory"><span class="octicon octicon-link"></span></a>getFactory</h3>
+
+<p>getFactory is almost the same like create method, but will return anonymous function, so if you then want to use it,
+you have to call it.</p>
+
+<pre><code>var application = di.getFactory('application');
+application = application();        // just call it
+</code></pre>
+
+<h2>
+<a name="not-instantiate-services" class="anchor" href="#not-instantiate-services"><span class="octicon octicon-link"></span></a>Not instantiate services</h2>
+
+<p>When you want for example use jQuery as service, you will not want to automatically call something like <code>new jquery</code>.
+So you can tell DI, that this service will not be instantiate.</p>
+
+<pre><code>{
+    "services": {
+        "jquery": {
+            "service": "jquery"
+            "instantiate": false
+        }
+    }
+}
+</code></pre>
+
+<h2>
+<a name="auto-run-services" class="anchor" href="#auto-run-services"><span class="octicon octicon-link"></span></a>Auto run services</h2>
+
+<p>When you are using configuration with json files, you can set some services to be started automatically after calling
+the <code>create</code> method.</p>
+
+<pre><code>{
+    "services": {
+        "setup": {
+            "service": "./path/to/setup",
+            "run": true
+        }
+    }
+}
+</code></pre>
+
+<h2>
+<a name="autowiring" class="anchor" href="#autowiring"><span class="octicon octicon-link"></span></a>Autowiring</h2>
+
+<p>Accessing some DI object is not so pretty like we want, so there is some nice way how to avoid it. You can let DI to "inject"
+all your services to other. For example if your application service needs translator service, just let DI to give it to
+application.</p>
+
+<p>All you need to do is add parameter "translator" to constructor of your application service. This name must be same like
+name of service in your configuration. DI then automatically give it translator service.</p>
+
+<p>The same thing is also for methods. You don't have to configure them, just set name of needed service in method's arguments
+and DI will give you these services.</p>
+
+<p>This is quite similar to dependency injection in <a href="http://angularjs.org/">angular</a>.</p>
+
+<p>Now in most cases you just have to use <code>get</code> method just once for create instance of your base application service
+and other services will be automatically injected.</p>
+
+<p>Please, try to avoid circular dependencies (service A depends on service B and service B depends on service A).</p>
+
+<h2>
+<a name="examples" class="anchor" href="#examples"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>In your configuration, you can use three dots as replacement for services.</p>
+
+<p>Services:</p>
+
+<pre><code>var serviceA = function(serviceB, serviceC) { ... };
+var serviceB = function(serviceC, namespace, item) { ... };
+var serviceC = function(namespace, item, serviceD) { ... };
+var serviceD = function() { ... };
+</code></pre>
+
+<p>Configuration:</p>
+
+<pre><code>{
+    "services": {
+        "serviceA": {
+            "service": "path/to/service/A",
+            "instantiate": false
+        },
+        "serviceB": {
+            "service": "path/to/service/B",
+            "arguments": ["...", "some namespace", "some item"],
+            "instantiate": false
+        },
+        "serviceC": {
+            "service": "path/to/service/C",
+            "arguments": ["some namespace", "some item"],
+            "instantiate": false
+        },
+        "serviceD": {
+            "service": "path/to/service/D",
+            "instantiate": false
+        }
+    }
+}
+</code></pre>
+
+<p>or more expanded:</p>
+
+<pre><code>{
+    "services": {
+        "serviceA": {
+            "service": "path/to/service/A",
+            "arguments": ["..."],
+            "instantiate": false
+        },
+        "serviceB": {
+            "service": "path/to/service/B",
+            "arguments": ["...", "some namespace", "some item"],
+            "instantiate": false
+        },
+        "serviceC": {
+            "service": "path/to/service/C",
+            "arguments": ["some namespace", "some item", "..."],
+            "instantiate": false
+        },
+        "serviceD": {
+            "service": "path/to/service/D",
+            "arguments": ["..."],
+            "instantiate": false
+        }
+    }
+}
+</code></pre>
+
+<p>Only problem is with minified javascript files which changes variable names. Solution for this is write some kind of hint
+for DI container.</p>
+
+<pre><code>var someFunction = function(otherNameForApplicationService) {
+    {'@di:inject': ['@application']};           // services' names are prepended with '@'
+
+    otherNameForApplicationService.run();       // this will call method run on service application
+};
+</code></pre>
+
+<p>or you can also include services by their full paths:</p>
+
+<pre><code>var someFunction = function(otherNameForApplicationService) {
+    {'@di:inject': ['$path/to/application/service']};       // services' paths are prepended with '$'
+
+    otherNameForApplicationService.run();
+};
+</code></pre>
+
+<p>or if you need factory:</p>
+
+<pre><code>var someFunction = function(otherNameForApplicationService) {
+    {'@di:inject': ['factory:$path/to/application/service']};       // can also be name of service: "factory:@application"
+
+    otherNameForApplicationService.run();
+};
+</code></pre>
+
+<p>These hints has got the same syntax as arguments configuration.</p>
+
+<h3>
+<a name="disable-autowiring" class="anchor" href="#disable-autowiring"><span class="octicon octicon-link"></span></a>Disable autowiring</h3>
+
+<p>If you want to disable autowiring for some service, you can set "autowired" option to false in your config (like instantiate).</p>
+
+<p>When you will try to autowire this service, DI will throw an error.</p>
+
+<pre><code>{
+    "services": {
+        "setup": {
+            "someName": "./path/to/this/service",
+            "autowired": false
+        }
+    }
+}
+</code></pre>
+
+<h2>
+<a name="autowire-factories" class="anchor" href="#autowire-factories"><span class="octicon octicon-link"></span></a>Autowire factories</h2>
+
+<p>You can also let DI to autowire factories. For example if you want to get factory for translator, you will add "Factory"
+to the end of translator.</p>
+
+<pre><code>MyClass.prototype.setTranslator = function(translatorFactory) {
+    var translator = translatorFactory();           // now do something with translator
+};
+</code></pre>
+
+<h2>
+<a name="links-to-other-services" class="anchor" href="#links-to-other-services"><span class="octicon octicon-link"></span></a>Links to other services</h2>
+
+<p>When you have got for example foreign library registered as service in this DI and want to autowire some other service into
+it, you have to use their names of methods arguments.</p>
+
+<p>Another possibility is to set these services in your config.</p>
+
+<pre><code>{
+    "services": {
+        "foreignLibrary": {
+            "service": "path/to/service",
+            "arguments": [
+                "@translator"
+            ]
+        }
+    }
+}
+</code></pre>
+
+<p>or with full module path:</p>
+
+<pre><code>{
+    "services": {
+        "foreignLibrary": {
+            "service": "path/to/service",
+            "arguments": [
+                "$path/to/translator/module"
+            ]
+        }
+    }
+}
+</code></pre>
+
+<p>Now this <code>foreignLibrary</code> will gets your <code>translator</code> service in constructor.</p>
+
+<h2>
+<a name="default-services" class="anchor" href="#default-services"><span class="octicon octicon-link"></span></a>Default services</h2>
+
+<p>There are already prepared some services.</p>
+
+<ul>
+<li>
+<code>di</code>: di container itself</li>
+<li>
+<code>timer</code>: object with <code>setTimeout</code>, <code>setInterval</code>, <code>clearTimeout</code> and <code>clearInterval</code> methods</li>
+<li>
+<code>window</code>: window object (browser only)</li>
+<li>
+<code>document</code>: window.document object (browser only)</li>
+<li>
+<code>global</code>: global object (node.js only)</li>
+</ul><pre><code>di.get('di');
+</code></pre>
+
+<h2>
+<a name="parameters" class="anchor" href="#parameters"><span class="octicon octicon-link"></span></a>Parameters</h2>
+
+<p>In documentation of <a href="https://github.com/sakren/node-easy-configuration">easy-configuration</a> you can see that you can use
+also parameters. This is useful for example for setting your services.</p>
+
+<pre><code>{
+    "parameters": {
+        "database": {
+            "user": "root",
+            "password": "toor"
+        }
+    },
+    "services": {
+        "database": {
+            "service": "database/connection",
+            "arguments": [
+                "%database.user%",
+                "%database.password%"
+            ]
+        }
+    }
+}
+</code></pre>
+
+<p>Credentials for database connection will be root and toor.</p>
+
+<p>Or you can access these parameters from di object.</p>
+
+<pre><code>console.log(di.parameters);                         // whole object of expanded parameters
+console.log(di.getParameter('database.user');       // root
+</code></pre>
+
+<p><code>getParameter()</code> method is just shortcut to <a href="https://github.com/sakren/node-easy-configuration/blob/master/src/EasyConfiguration.coffee#L173">getParameter</a>
+method in <a href="https://github.com/sakren/node-easy-configuration">easy-configuration</a>.</p>
+
+<h2>
+<a name="advanced-configuration" class="anchor" href="#advanced-configuration"><span class="octicon octicon-link"></span></a>Advanced configuration</h2>
+
+<p>If you need more control over configuration, you can create instance of <code>easy-configuration</code> object on your own and pass
+it to DIConfigurator.</p>
+
+<pre><code>var Config = require('easy-configuration');
+var DIConfigurator = require('dependency-injection/DIConfigurator');
+
+var config = new Config;
+config.addConfig('./path/to/config.json', 'development');
+
+var configurator = new DIConfigurator(config);
+var di = configurator.create();
+</code></pre>
+
+<h2>
+<a name="without-configuration" class="anchor" href="#without-configuration"><span class="octicon octicon-link"></span></a>Without configuration</h2>
+
+<p>Maybe it will be better for someone to use this DI without configuration, so here is example of application, translator
+and jquery definition.</p>
+
+<pre><code>var DI = require('dependency-injection');
+var di = new DI;
+
+di.addService('application', require('./path/to/my/application/module'), ['./www', 'someOtherVariable'])
+    .addSetup('setApplicationName', ['nameOfApplication'])
+    .addSetup('setSomethingOther', ['someUselessVariable', 'andAnotherOne']);
+
+di.addService('translator', require('./path/to/translator'))
+    .addSetup('setLanguage', ['en']);
+
+di.addService('jquery', 'jquery')
+    .setInstantiate(false);
+
+di.addService('private', 'my/private/service')
+    .setAutowired(false);
+</code></pre>
+
+<p>Instead of path to service (second parameter in addService method) you can also use string with path, but this path will be
+then relative to class of DI!</p>
+
+<h2>
+<a name="create-instance" class="anchor" href="#create-instance"><span class="octicon octicon-link"></span></a>Create instance</h2>
+
+<p>If you have got some other object which you want to use with other services, but can not use configuration or DI for this,
+you can use <code>createInstance</code> method and DI will create new instance of your object with dependencies defined in constructor.</p>
+
+<pre><code>var SuperClass = require('./mySuperClass');
+var super = di.createInstance(SuperClass, ['and some argument']);
+</code></pre>
+
+<h2>
+<a name="inject-method" class="anchor" href="#inject-method"><span class="octicon octicon-link"></span></a>Inject method</h2>
+
+<p>For simple injecting services into your functions, you can use method <code>inject</code>.</p>
+
+<pre><code>di.inject(function(application) {
+    application.doSomeMagic();
+});
+</code></pre>
+
+<p>or with arguments</p>
+
+<pre><code>di.inject(function(application, path) {
+    application.setPath(path);
+}, ['...', '/path/to/some/folder']);        // syntax is same like in configuration
+</code></pre>
+
+<p>you can of course use also autowire hints.</p>
+
+<h2>
+<a name="tests" class="anchor" href="#tests"><span class="octicon octicon-link"></span></a>Tests</h2>
+
+<pre><code>$ npm test
+</code></pre>
+
+<h2>
+<a name="changelog" class="anchor" href="#changelog"><span class="octicon octicon-link"></span></a>Changelog</h2>
+
+<ul>
+<li>
+<p>2.2.0</p>
+
+<ul>
+<li>Relative paths to config files</li>
+<li>Little updates in tests</li>
+<li>Added default services</li>
+<li>Better documentation</li>
+<li>Many improvements in configuration (see <a href="https://github.com/sakren/node-easy-configuration">easy-configuration</a>)</li>
+</ul>
+</li>
+<li>
+<p>2.1.1</p>
+
+<ul>
+<li>Hints has exactly the same syntax as arguments configuration</li>
+<li>Inject method's second argument is args, not scope (BC break!)</li>
+</ul>
+</li>
+<li>
+<p>2.1.0</p>
+
+<ul>
+<li>Added <a href="https://github.com/sakren/node-easy-configuration">config</a> object do DIConfigurator</li>
+<li>Bug with exposing</li>
+<li>Accessing parameters from di instance</li>
+<li>Updated dependencies</li>
+</ul>
+</li>
+<li>
+<p>2.0.1</p>
+
+<ul>
+<li>Injecting by arguments and hints was not working</li>
+</ul>
+</li>
+<li>
+<p>2.0.0</p>
+
+<ul>
+<li>Removed autowiring into <code>inject</code> methods (BC break!)</li>
+<li>Added methods <code>getByPath</code> and <code>getFactoryByPath</code>
+</li>
+<li>Added basePath option</li>
+<li>Better docs</li>
+<li>Added hints for autowiring</li>
+</ul>
+</li>
+<li>
+<p>1.8.0</p>
+
+<ul>
+<li>Better tests (mocha does not need to be installed globally)</li>
+<li>Updated dependencies</li>
+<li>Added badges</li>
+<li>Added to travis</li>
+</ul>
+</li>
+<li>
+<p>1.7.3</p>
+
+<ul>
+<li>Bug with no-string arguments</li>
+</ul>
+</li>
+<li>
+<p>1.7.2</p>
+
+<ul>
+<li>Bug with functions as services</li>
+</ul>
+</li>
+<li>
+<p>1.7.1</p>
+
+<ul>
+<li>Potential bug in IE</li>
+</ul>
+</li>
+<li>
+<p>1.7.0</p>
+
+<ul>
+<li>Updated dependencies</li>
+<li>Added <code>injectMethods</code> to services</li>
+<li>Refactored autowiring</li>
+<li>Some optimizations</li>
+<li>
+<code>DI.autowireArguments</code> moved to <code>Helpers.autowireArguments</code>
+</li>
+<li>Throwing an error if circular reference is found</li>
+</ul>
+</li>
+<li>
+<p>1.6.6 - 1.6.7</p>
+
+<ul>
+<li>Bugs in Internet Explorer 8</li>
+</ul>
+</li>
+<li>
+<p>1.6.2 - 1.6.5</p>
+
+<ul>
+<li>Some optimizations</li>
+<li>Should assert module replaced with chai</li>
+<li>Better error messages</li>
+</ul>
+</li>
+<li>
+<p>1.6.1</p>
+
+<ul>
+<li>Bug with setting other arguments than strings</li>
+</ul>
+</li>
+<li>
+<p>1.6.0</p>
+
+<ul>
+<li>Added <code>get</code> method, <code>getByName</code> is now deprecated</li>
+<li>Added <code>inject</code> method</li>
+<li>Autowiring with @</li>
+</ul>
+</li>
+<li>
+<p>1.5.2</p>
+
+<ul>
+<li>Add setup into properties</li>
+</ul>
+</li>
+<li>
+<p>1.4.1</p>
+
+<ul>
+<li>Bug</li>
+</ul>
+</li>
+<li>
+<p>1.4.0</p>
+
+<ul>
+<li>Option for exposing di into</li>
+</ul>
+</li>
+<li>
+<p>1.3.2 - 1.3.3</p>
+
+<ul>
+<li>Bug with run option</li>
+</ul>
+</li>
+<li>
+<p>1.3.1</p>
+
+<ul>
+<li>Just some mistake in readme</li>
+</ul>
+</li>
+<li>
+<p>1.3.0</p>
+
+<ul>
+<li>Added auto run option into configuration</li>
+<li>Really huge mistake in readme</li>
+</ul>
+</li>
+<li>
+<p>1.2.3</p>
+
+<ul>
+<li>Autowiring parameters even if they are not in function definition</li>
+</ul>
+</li>
+<li>
+<p>1.2.2</p>
+
+<ul>
+<li>Added missing test</li>
+</ul>
+</li>
+<li>
+<p>1.2.1</p>
+
+<ul>
+<li>Added ability to inject DI container itself</li>
+</ul>
+</li>
+<li>
+<p>1.2.0</p>
+
+<ul>
+<li>Added DI.createInstance method</li>
+<li>DI.addService accepts also objects</li>
+<li>Typos in README</li>
+<li>Optimizations</li>
+<li>Added mocha tests</li>
+<li>Added setInstantiate method</li>
+<li>Added autowired option</li>
+</ul>
+</li>
+<li>
+<p>1.1.1</p>
+
+<ul>
+<li>inject methods are called before custom setup</li>
+</ul>
+</li>
+<li>
+<p>1.1.0</p>
+
+<ul>
+<li>Support for not-instantiate services</li>
+</ul>
+</li>
+<li>
+<p>1.0.1</p>
+
+<ul>
+<li>Added information about autowiring factories</li>
+</ul>
+</li>
+<li>
+<p>1.0.0</p>
+
+<ul>
+<li>Initial version</li>
+</ul>
+</li>
+</ul>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/sakren/node-dependency-injection/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/sakren/node-dependency-injection/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/sakren/node-dependency-injection"></a> is maintained by <a href="https://github.com/sakren">sakren</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
